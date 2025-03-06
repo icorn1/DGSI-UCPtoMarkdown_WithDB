@@ -86,3 +86,12 @@ def crawl(url):
         executor.map(crawl, links_to_crawl)
 
 crawl(start_url)
+
+query = "ingeniería informática en la UPC"
+results = collection.query(
+    query_texts=[query],
+    n_results=3  # Devuelve los 3 chunks más relevantes
+)
+
+for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
+    print(f"🔹 Fuente: {meta['source']}\n{doc}\n")
