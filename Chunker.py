@@ -2,9 +2,12 @@ import chromadb
 import os
 import html2text
 from uuid import uuid4
-from chromadb.utils import embedding_functions
+from sentence_transformers import SentenceTransformer
 
-# Crear conexión a ChromaDB (persistente)
+# Cargar modelo de embeddings (usa "all-MiniLM-L6-v2" por defecto)
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+# Conectar a ChromaDB (persistente)
 chroma_client = chromadb.PersistentClient(path="chroma_db")
 collection = chroma_client.get_or_create_collection(name="web_scraper")
 
@@ -13,7 +16,7 @@ def split_text(text, chunk_size=500):
     words = text.split()
     return [" ".join(words[i : i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
-# Leer y procesar archivos Markdown
+# Leer archivos Markdown y generar embeddings
 markdown_folder = "markdown_pages"
 
 for filename in os.listdir(markdown_folder):
@@ -24,13 +27,17 @@ for filename in os.listdir(markdown_folder):
     
     chunks = split_text(content)
 
-    # Guardar cada chunk en ChromaDB
-    for chunk in chunks:
+    # Generar embeddings para cada chunk
+    embeddings = model.encode(chunks).tolist()  # Convierte a listas para ChromaDB
+
+    # Guardar en ChromaDB
+    for chunk, embedding in zip(chunks, embeddings):
         doc_id = str(uuid4())  # ID único
         collection.add(
             ids=[doc_id],
             documents=[chunk],
-            metadatas=[{"source": filename}]
+            metadatas=[{"source": filename}],
+            embeddings=[embedding]
         )
 
-print("✅ Archivos guardados en ChromaDB en chunks")
+print("✅ Datos con embeddings almacenados en ChromaDB.")
